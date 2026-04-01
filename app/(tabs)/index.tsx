@@ -1,28 +1,67 @@
-import React from 'react';
-import { Platform, StatusBar, View, StyleSheet, FlatList, Text, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StatusBar, View, StyleSheet, FlatList, Text, ActivityIndicator, TextInput, Button } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
 
 export default function HomeScreen() {
   const [postList, setPostList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postBody, setPostBody] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+  const [error, setError] = useState(''); 
 
   const fetchData = async (limit = 10) => {
-    const response = await fetch(
-      `https://jsonplaceholder.typicode.com/posts?_limit=${limit}`
-    );
-    const data = await response.json();
-    setPostList(data);
-    // setIsLoading(false);
+    try{
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/posts?_limit=${limit}`
+      );
+      const data = await response.json();
+      setPostList(data);
+      setIsLoading(false);
+      setError('')
+    }catch(error){
+      console.error('Error fetching posts:', error);
+      setIsLoading(false);
+      setError('Failed to load posts. Please try again later.');
+
+    }
 
   };
-
-  const handleRefresh = () => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+  const handleRefresh = async () => {
     setRefreshing(true);
-    fetchData(20)
+    await fetchData(20)
     setRefreshing(false);
   }
+
+  const addPost = async () => {
+    setIsPosting(true);
+    try{
+      const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: postTitle,
+          body: postBody,
+        }),
+      });
+      const newPost = await response.json();
+      setPostList([newPost, ...postList]);
+      setPostTitle('');
+      setPostBody('');
+      setIsPosting(false);
+      //what does any of this mean?
+    } catch (error){
+      console.error('Error creating post:', error);
+      setIsPosting(false);
+      setError('Failed to add new post');
+      return;
+    }
+
+  };
 
   useEffect(() => {
     fetchData();
@@ -40,22 +79,35 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+          <View style={styles.inputContainer}>
+            <TextInput style={styles.input} placeholder="Post Title" value={postTitle} onChangeText={setPostTitle}/>
+            <TextInput style={styles.input} placeholder="Post Body" value={postBody} onChangeText={setPostBody}/>
+            <Button title={isPosting ? "Posting..." : "Create Post"} 
+            onPress={addPost} 
+            disabled={isPosting}/>
+        </View>
       <View style={styles.listContainer}>
         <FlatList
           data={postList}
           keyExtractor={(item) => item.id.toString()}
+          refreshing={refreshing}
+            onRefresh={handleRefresh}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.titleText}>{item.title}</Text>
               <Text style={styles.bodyText}>{item.body}</Text>
             </View>
-          )}
+          
+        )}
+            
         />
       </View>
     </SafeAreaView>
-
-    refreshing={refreshing}
-    onRefresh={handleRefresh}
   );
 }
 
@@ -99,5 +151,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
+  inputContainer: {
+    width: '100%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  input:{
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  errorContainer: {
+    backgroundColor: '#f8d7da',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  errorText: {
+    color: '#721c24',
+    fontSize: 14,
+  },
 });
